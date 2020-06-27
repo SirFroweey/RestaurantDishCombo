@@ -16,10 +16,6 @@ def read_csv(file_name):
     Read a CSV and parse the total and dishes from it.
     :filename (str) -> CSV to read from.
     """
-    if not os.stat(file_name).st_size:
-        print('Could not parse the CSV. File is empty.')
-        return
-
     total = None
     dishes = []
 
@@ -88,7 +84,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.file_name:
+        if not os.path.exists(args.file_name):
+            print('File not found.')
+            exit()
+
+        if not os.stat(args.file_name).st_size:
+            print('Could not parse the CSV. File is empty.')
+            exit()
+
         dishes = find_dish_combination(file_name=args.file_name)
-        print(dishes or 'No combination of dishes that is equal to the target price found')
+        print(dishes or 'No combination of dishes that is equal to the target price found.')
     else:
         print('No file specified')
