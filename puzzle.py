@@ -2,6 +2,7 @@ import itertools
 import functools
 import argparse
 import csv
+import os
 
 from collections import namedtuple
 from decimal import Decimal
@@ -15,20 +16,43 @@ def read_csv(file_name):
     Read a CSV and parse the total and dishes from it.
     :filename (str) -> CSV to read from.
     """
+    if not os.stat(file_name).st_size:
+        print('Could not parse the CSV. File is empty.')
+        return
+
     total = None
     dishes = []
 
-    # Read the CSV lines as a dictionary (key, value) pair and create new Dish objects.
-    with open(file_name, newline='') as csvfile:
-        reader = csv.DictReader(csvfile, fieldnames=['name', 'price'])
-        for row_index, row in enumerate(reader):
-            if row_index == 0:
-                total = Decimal(row['price'].replace('$', ''))
-            else:
-                # We utilize Decimal(s) to ensure proper floating point precision
-                dishes.append(Dish(row['name'], Decimal(row['price'].replace('$', ''))))
+    def _read_price(row):
+        price = None
+        try:
+            # We utilize Decimal(s) to ensure proper floating point precision
+            price = Decimal(row['price'].replace('$', ''))
+        except AttributeError:
+            print('Could not parse the CSV. Invalid format.')
+            return
 
-    return (total, dishes)
+        return price
+
+    # Read the CSV lines as a dictionary (key, value) pair and create new Dish objects.
+    with open(file_name, 'r', newline='') as csvfile:
+        reader = csv.DictReader(csvfile, fieldnames=['name', 'price'])
+
+        for row_index, row in enumerate(reader):
+            price = _read_price(row)
+
+            if not price:
+                return
+
+            if row_index == 0:
+                total = price
+            else:
+                dishes.append(Dish(row['name'], price))
+
+    return {
+        'total': total, 
+        'dishes': dishes
+    }
 
 
 def find_dish_combination(file_name):
@@ -37,13 +61,19 @@ def find_dish_combination(file_name):
     :filename (str) -> CSV to read from.
     Returns a list of Dish objects or None.
     """
-    total, dishes = read_csv(file_name)
-    indices = list(range(len(dishes)))
+    contents = read_csv(file_name)
+
+    if not contents:
+        return
+    
+    total = contents['total']
+    dishes = contents['dishes']
+    dish_list_indices = list(range(len(dishes)))
 
     # Generate all possible combination of dishes and attempt to find a sum equal to
     # the desired total.
     for index in range(len(dishes)):
-        for combo in itertools.combinations(indices, index):
+        for combo in itertools.combinations(dish_list_indices, index):
             projected_total = sum([dishes[index].price for index in combo])
             if projected_total == total:
                 return [dishes[index] for index in combo]

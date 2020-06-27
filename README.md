@@ -5,3 +5,5 @@
 
 ## Using an optional CSV file
 1. `python3 puzzle.py --filename example2.csv`
+2. `python3 puzzle.py --filename broken.csv`
+3. `python3 puzzle.py --filename empty.csv`
